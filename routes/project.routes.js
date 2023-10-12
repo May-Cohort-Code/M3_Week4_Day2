@@ -1,20 +1,24 @@
+const { isAuthenticated } = require("../middleware/jwt.middleware");
 const Project = require("../models/Project.models");
 
 const router = require("express").Router();
+
+const fileUploader = require('../config/cloudinary.config')
+
 
 
 //POST
 
 
-router.post('/projects',(req,res)=>{
-    const {title,description} = req.body
+router.post('/projects',isAuthenticated,(req,res)=>{
+    const {title,description,imageUrl} = req.body
 
     if(!title || !description){
         res.json({message:"Please fill in all mandetory Fields"})
         return
     }
 
-    Project.create({title:title,description:description})
+    Project.create({title:title,description:description,image:imageUrl})
     .then((newProject)=>{
         res.json({message:"Project Successfully Created"})
     })
@@ -24,7 +28,7 @@ router.post('/projects',(req,res)=>{
 })
 
 //GET
-router.get('/projects',(req,res)=>{
+router.get('/projects',isAuthenticated,(req,res)=>{
 
     Project.find()
     .populate('tasks')
@@ -46,7 +50,25 @@ router.get('/projects',(req,res)=>{
 //
 
 
+//upload
+router.post("/upload", fileUploader.single("imageUrl"), (req, res, next) => {
+    // console.log("file is: ", req.file)
+   
+    if (!req.file) {
+      next(new Error("No file uploaded!"));
+      return;
+    }
+    
+    // Get the URL of the uploaded file and send it as a response.
+    // 'fileUrl' can be any name, just make sure you remember to use the same when accessing it on the frontend
+    
+    res.json({ fileUrl: req.file.path });
+  });
+  
+
+
 //GET for 1 project
+
 
 router.get('/projects/:id',(req,res)=>{
     const {id} = req.params
@@ -55,6 +77,9 @@ router.get('/projects/:id',(req,res)=>{
     .populate('tasks')
     .then((oneProject)=>{
         res.json(oneProject)
+    })
+    .catch((err)=>{
+        res.json(err)
     })
 
 })
@@ -100,8 +125,6 @@ router.delete('/projects/:id',(req,res)=>{
     .catch((err)=>{
         res.json(err)
     })
-
-
 
 })
 
